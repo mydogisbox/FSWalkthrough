@@ -162,6 +162,27 @@ workflow {
 
 ---
 
+## Awaiting tasks inside the CE
+
+`let!` and `do!` accept `Task<'T>` and `Task` directly. The intended use is async assertions — xUnit and similar frameworks expose async assert helpers that return `Task`:
+
+```fsharp
+workflow {
+    let! order = CreateOrderRequest.Default
+
+    // async assertion returning Task<'T>
+    let! items = fetchOrderItemsAsync order.Id   // Task<Item list>
+    Assert.Equal(2, items.Length)
+
+    // async assertion returning Task (unit)
+    do! Assert.ThrowsAsync<NotFoundException>(fun () -> getDeletedOrder order.Id)
+}
+```
+
+The task result is not captured in `WorkflowContext` — use the bound name directly.
+
+---
+
 ## Per-invocation overrides
 
 Use F# record copy-and-update (`with`) to override fields per call. This works for any request field:

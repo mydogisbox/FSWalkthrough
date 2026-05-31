@@ -116,6 +116,13 @@ workflow {
 
     // poll — retry until predicate
     let! order = pollWith 100 5000 GetOrderRequest.Default (fun r -> r.Status = "pending")
+
+    // async assertion returning Task<'T>
+    let! items = fetchOrderItemsAsync order.Id
+    Assert.Equal(2, items.Length)
+
+    // async assertion returning Task (unit)
+    do! Assert.ThrowsAsync<NotFoundException>(fun () -> getDeletedOrder order.Id)
 } |> run runner
 ```
 

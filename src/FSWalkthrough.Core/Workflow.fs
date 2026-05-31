@@ -35,6 +35,18 @@ type WorkflowBuilder() =
             return! (f x) runner
         }
 
+    member _.Bind(t: Task<'T>, f: 'T -> Workflow<'U>) : Workflow<'U> =
+        fun runner -> task {
+            let! x = t
+            return! (f x) runner
+        }
+
+    member _.Bind(t: Task, f: unit -> Workflow<'U>) : Workflow<'U> =
+        fun runner -> task {
+            do! t
+            return! (f ()) runner
+        }
+
     member _.Delay(f: unit -> Workflow<'T>) : Workflow<'T> =
         fun runner -> f () runner
 
