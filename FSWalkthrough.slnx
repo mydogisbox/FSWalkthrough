@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/FSWalkthrough.SampleApi/FSWalkthrough.SampleApi.fsproj" />
+    <Project Path="samples/FSWalkthrough.SampleWorkflows/FSWalkthrough.SampleWorkflows.fsproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FSWalkthrough.Core/FSWalkthrough.Core.fsproj" />
+    <Project Path="src/FSWalkthrough.Http/FSWalkthrough.Http.fsproj" />
+  </Folder>
+</Solution>

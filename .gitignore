@@ -1,0 +1,19 @@
+# Build artifacts
+bin/
+obj/
+
+# NuGet packages
+nupkgs/
+*.nupkg
+
+# Test artifacts
+test-api.log
+.api-started
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# OS
+.DS_Store
