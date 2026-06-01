@@ -227,6 +227,14 @@ let ``MapBody ExplicitFieldMapping WorksCorrectly`` () =
     } |> run runner
 
 [<Fact>]
+let ``TagUser Returns201WithNoBody`` () =
+    workflow {
+        LoginRequest.Default
+        CreateUserRequest.Default
+        TagUserRequest.Default
+    } |> run (makeRunner())
+
+[<Fact>]
 let ``MultiTarget EachTargetHandlesItsOwnSteps`` () =
     let loginTarget =
         HttpTarget("http://localhost:4200")

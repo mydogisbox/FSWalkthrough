@@ -183,8 +183,11 @@ type HttpStep<'TRequest, 'TResponse when 'TRequest :> WorkflowRequest<'TResponse
     override this.RunStepAsync(executor, resolvedFields, targetHeaders) =
         task {
             let (pp, q, h, b) = this.PrepareRequest(resolvedFields, targetHeaders)
-            let! json     = executor.SendAsync(this.Method, this.Path, pp, q, b, h)
-            return HttpExecutor.Deserialize<'TResponse>(json) :> obj
+            let! json = executor.SendAsync(this.Method, this.Path, pp, q, b, h)
+            if String.IsNullOrEmpty(json) then
+                return Unchecked.defaultof<'TResponse> |> box
+            else
+                return HttpExecutor.Deserialize<'TResponse>(json) :> obj
         }
 
     override this.RunRawStepAsync(executor, resolvedFields, targetHeaders) =

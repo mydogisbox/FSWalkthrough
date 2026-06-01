@@ -52,3 +52,7 @@ type SampleApiService() =
         if not (users.ContainsKey(userId)) then
             raise (KeyNotFoundException($"User '{userId}' not found."))
         { UserId = userId; Contact = req.Contact }
+
+    member _.TagUser(userId: string, tag: string) : unit =
+        if not (users.ContainsKey(userId)) then
+            raise (KeyNotFoundException($"User '{userId}' not found."))

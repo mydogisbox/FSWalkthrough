@@ -89,3 +89,18 @@ type GetUsersByRoleStep() =
     override _.MapQuery(fields) =
         let role = match fields.TryGetValue "Role" with | true, v -> string v | _ -> ""
         Dictionary(dict ["role", role])
+
+// ── Tag user (201 with no body) ───────────────────────────────────────────────
+
+type TagUserRequest =
+    { UserId : IFieldValue<string>
+      Tag    : IFieldValue<string> }
+    interface WorkflowRequest<unit>
+    static member Default =
+        { UserId = FieldValues.from (fun ctx -> ctx.Get<UserResponse>("CreateUserRequest").Id)
+          Tag    = FieldValues.constant "verified" }
+
+type TagUserStep() =
+    inherit HttpStep<TagUserRequest, unit>()
+    override _.Method = HttpMethod.Post
+    override _.Path   = "/users/{userId}/tags/{tag}"

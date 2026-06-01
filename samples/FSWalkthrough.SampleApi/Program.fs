@@ -103,6 +103,15 @@ let main args =
                 Results.NotFound({| error = $"User '{userId}' not found." |})
         )).RequireAuthorization() |> ignore
 
+    app.MapPost("/users/{userId}/tags/{tag}",
+        Func<SampleApiService, string, string, IResult>(fun svc userId tag ->
+            try
+                svc.TagUser(userId, tag)
+                Results.Created($"/users/{userId}/tags/{tag}", null)
+            with :? System.Collections.Generic.KeyNotFoundException ->
+                Results.NotFound({| error = $"User '{userId}' not found." |})
+        )).RequireAuthorization() |> ignore
+
     app.MapGet("/echo/headers",
         Func<HttpContext, IResult>(fun ctx ->
             let headers =

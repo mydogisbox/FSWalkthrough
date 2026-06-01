@@ -24,6 +24,7 @@ let makeRunner () =
             .Register<CreateUserStep>()
             .Register<UpdateUserAddressStep>()
             .Register<GetUsersByRoleStep>()
+            .Register<TagUserStep>()
             .Register<CreateOrderStep>()
             .Register<GetOrderStep>()
             .Register<EchoHeadersStep>()
