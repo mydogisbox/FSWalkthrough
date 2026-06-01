@@ -1,6 +1,6 @@
 # F# style
 
-_Current version: 1.0.3._
+_Current version: 1.0.4._
 
 ---
 
@@ -11,12 +11,14 @@ Three factories are available in `FSWalkthrough.Core.FieldValues`:
 - `constant value` — returns the same value every time. The value is captured once at construction.
 - `generated factory` — invokes the factory each time the field is resolved. Use for values that must be unique per resolution or per test run.
 - `from selector` — reads from the context at resolution time. Use for values that come from a prior step's captured response.
+- `fromTask factory` — like `from`, but the selector returns `Task<'T>`. Use when the value requires an async lookup.
 
 ```fsharp
 Id      = FieldValues.generated (fun () -> Guid.NewGuid().ToString())
 Email   = FieldValues.generated (fun () -> $"user-{Guid.NewGuid():N}@example.com")
 Token   = FieldValues.from (fun ctx -> ctx.Get<LoginResponse>("LoginRequest").Token)
 BaseUrl = FieldValues.constant "http://localhost:5020"
+OrgId   = FieldValues.fromTask (fun ctx -> task { return! lookupOrgAsync ctx })
 ```
 
 ---

@@ -230,16 +230,16 @@ type HttpTarget(baseUrl: string) =
 
         member this.ExecuteAsync<'TResponse>(request, resolvedFields, ctx) =
             task {
-                let step          = this.GetStep(request)
-                let targetHeaders = FieldValueResolver.resolveGroup headers ctx
-                let! boxed        = step.RunStepAsync(executor, resolvedFields, targetHeaders)
+                let step           = this.GetStep(request)
+                let! targetHeaders = FieldValueResolver.resolveGroupAsync headers ctx
+                let! boxed         = step.RunStepAsync(executor, resolvedFields, targetHeaders)
                 return boxed :?> 'TResponse
             }
 
     interface IRawTarget with
         member this.ExecuteRawAsync<'TResponse>(request: WorkflowRequest<'TResponse>, resolvedFields, ctx) =
             task {
-                let step          = this.GetStep(request)
-                let targetHeaders = FieldValueResolver.resolveGroup headers ctx
+                let step           = this.GetStep(request)
+                let! targetHeaders = FieldValueResolver.resolveGroupAsync headers ctx
                 return! step.RunRawStepAsync(executor, resolvedFields, targetHeaders)
             }

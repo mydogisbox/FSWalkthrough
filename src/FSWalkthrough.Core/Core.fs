@@ -71,24 +71,29 @@ type WorkflowContext() =
 // ── Field values ──────────────────────────────────────────────────────────────
 
 type IFieldValue<'T> =
-    abstract Resolve : WorkflowContext -> 'T
+    abstract ResolveAsync : WorkflowContext -> Task<'T>
 
 module FieldValues =
     type private StaticValue<'T>(value: 'T) =
         interface IFieldValue<'T> with
-            member _.Resolve(_) = value
+            member _.ResolveAsync(_) = Task.FromResult(value)
 
     type private GeneratedValue<'T>(generator: unit -> 'T) =
         interface IFieldValue<'T> with
-            member _.Resolve(_) = generator()
+            member _.ResolveAsync(_) = Task.FromResult(generator())
 
     type private FromValue<'T>(selector: WorkflowContext -> 'T) =
         interface IFieldValue<'T> with
-            member _.Resolve(ctx) = selector ctx
+            member _.ResolveAsync(ctx) = Task.FromResult(selector ctx)
+
+    type private FromTaskValue<'T>(factory: WorkflowContext -> Task<'T>) =
+        interface IFieldValue<'T> with
+            member _.ResolveAsync(ctx) = factory ctx
 
     let constant<'T> (value: 'T) : IFieldValue<'T>              = StaticValue(value) :> _
     let generated<'T> (generator: unit -> 'T) : IFieldValue<'T> = GeneratedValue(generator) :> _
     let from<'T> (selector: WorkflowContext -> 'T) : IFieldValue<'T> = FromValue(selector) :> _
+    let fromTask<'T> (factory: WorkflowContext -> Task<'T>) : IFieldValue<'T> = FromTaskValue(factory) :> _
 
 // ── Step / Target interfaces ──────────────────────────────────────────────────
 
@@ -119,65 +124,86 @@ module FieldValueResolver =
             |> Array.tryFind (fun i ->
                 i.IsGenericType && i.GetGenericTypeDefinition() = fieldValueOpenGeneric)
 
-    let rec private resolveRecursively (value: obj) (context: WorkflowContext) : obj =
-        if isNull value then null
-        else
-            let t = value.GetType()
-            if t.IsPrimitive || value :? string || value :? decimal || t.IsEnum then
-                value
-            elif value :? System.Collections.IList then
-                let list   = value :?> System.Collections.IList
-                let result = ResizeArray(list.Count)
-                for item in list do result.Add(resolveRecursively item context)
-                result :> obj
-            else
-                let props = t.GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
-                if props |> Array.exists (fun p -> getFieldValueInterface p.PropertyType |> Option.isSome) then
-                    resolveProperties value context Set.empty (fun _ -> false) :> obj
-                else
-                    value
+    let private awaitBoxedTask (taskObj: obj) : Task<obj> =
+        task {
+            let t = taskObj :?> Task
+            do! t
+            return t.GetType().GetProperty("Result").GetValue(t)
+        }
 
-    and private resolveProperties
+    let rec private resolveRecursivelyAsync (value: obj) (context: WorkflowContext) : Task<obj> =
+        task {
+            if isNull value then
+                return null
+            else
+                let t = value.GetType()
+                if t.IsPrimitive || value :? string || value :? decimal || t.IsEnum then
+                    return value
+                elif value :? System.Collections.IList then
+                    let list   = value :?> System.Collections.IList
+                    let result = ResizeArray(list.Count)
+                    for item in Seq.cast<obj> list do
+                        let! resolved = resolveRecursivelyAsync item context
+                        result.Add(resolved)
+                    return result :> obj
+                else
+                    let props = t.GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
+                    if props |> Array.exists (fun p -> getFieldValueInterface p.PropertyType |> Option.isSome) then
+                        let! dict = resolvePropertiesAsync value context Set.empty (fun _ -> false)
+                        return dict :> obj
+                    else
+                        return value
+        }
+
+    and private resolvePropertiesAsync
             (target: obj)
             (context: WorkflowContext)
             (excludedNames: Set<string>)
             (isBaseType: Type -> bool)
-            : Dictionary<string, obj> =
-        let result = Dictionary<string, obj>()
-        let props =
-            target.GetType().GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
-            |> Array.filter (fun p -> not (excludedNames.Contains p.Name))
-            |> Array.filter (fun p -> not (isBaseType p.DeclaringType))
-        for prop in props do
-            let value = prop.GetValue(target)
-            if isNull value then
-                result[prop.Name] <- null
-            else
-                match getFieldValueInterface prop.PropertyType with
-                | Some iface ->
-                    let m       = iface.GetMethod("Resolve")
-                    let resolved = m.Invoke(value, [| context |])
-                    result[prop.Name] <- resolveRecursively resolved context
-                | None ->
-                    result[prop.Name] <- value
-        result
+            : Task<Dictionary<string, obj>> =
+        task {
+            let result = Dictionary<string, obj>()
+            let props =
+                target.GetType().GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
+                |> Array.filter (fun p -> not (excludedNames.Contains p.Name))
+                |> Array.filter (fun p -> not (isBaseType p.DeclaringType))
+            for prop in props do
+                let propValue = prop.GetValue(target)
+                if isNull propValue then
+                    result[prop.Name] <- null
+                else
+                    match getFieldValueInterface prop.PropertyType with
+                    | Some iface ->
+                        let m = iface.GetMethod("ResolveAsync")
+                        let taskObj = m.Invoke(propValue, [| context |])
+                        let! resolved = awaitBoxedTask taskObj
+                        let! recResolved = resolveRecursivelyAsync resolved context
+                        result[prop.Name] <- recResolved
+                    | None ->
+                        result[prop.Name] <- propValue
+            return result
+        }
 
-    let resolve<'TResponse>
+    let resolveAsync<'TResponse>
             (request: WorkflowRequest<'TResponse>)
             (context: WorkflowContext)
-            : Dictionary<string, obj> =
-        resolveProperties request context Set.empty (fun _ -> false)
+            : Task<Dictionary<string, obj>> =
+        resolvePropertiesAsync request context Set.empty (fun _ -> false)
 
-    let resolveObject (item: BuildableRequest) (context: WorkflowContext) : Dictionary<string, obj> =
-        resolveProperties item context Set.empty (fun _ -> false)
+    let resolveObjectAsync (item: BuildableRequest) (context: WorkflowContext) : Task<Dictionary<string, obj>> =
+        resolvePropertiesAsync item context Set.empty (fun _ -> false)
 
-    let resolveGroup
+    let resolveGroupAsync
             (fields: Dictionary<string, IFieldValue<string>>)
             (context: WorkflowContext)
-            : Dictionary<string, string> =
-        let result = Dictionary<string, string>()
-        for kv in fields do result[kv.Key] <- kv.Value.Resolve(context)
-        result
+            : Task<Dictionary<string, string>> =
+        task {
+            let result = Dictionary<string, string>()
+            for kv in fields do
+                let! v = kv.Value.ResolveAsync(context)
+                result[kv.Key] <- v
+            return result
+        }
 
 // ── WorkflowRunner ────────────────────────────────────────────────────────────
 
@@ -207,10 +233,10 @@ type WorkflowRunner private (context: WorkflowContext, resolver: (string -> ITar
 
     member this.ExecuteAsync<'TResponse>(request: WorkflowRequest<'TResponse>) : Task<'TResponse> =
         task {
-            let key            = request.GetType().Name
-            let target         = this.Resolve(key)
-            let resolvedFields = FieldValueResolver.resolve request context
-            let! response      = target.ExecuteAsync(request, resolvedFields, context)
+            let key             = request.GetType().Name
+            let target          = this.Resolve(key)
+            let! resolvedFields = FieldValueResolver.resolveAsync request context
+            let! response       = target.ExecuteAsync(request, resolvedFields, context)
             context.CaptureRaw(key, response :> obj)
             return response
         }
@@ -221,8 +247,8 @@ type WorkflowRunner private (context: WorkflowContext, resolver: (string -> ITar
             let target = this.Resolve(key)
             match target with
             | :? IRawTarget as raw ->
-                let resolvedFields = FieldValueResolver.resolve request context
-                let! result        = raw.ExecuteRawAsync(request, resolvedFields, context)
+                let! resolvedFields = FieldValueResolver.resolveAsync request context
+                let! result         = raw.ExecuteRawAsync(request, resolvedFields, context)
                 context.CaptureRaw(key, result)
                 return result
             | _ ->
@@ -256,9 +282,11 @@ type WorkflowRunner private (context: WorkflowContext, resolver: (string -> ITar
         }
 
     member _.BuildAsync<'TResponse>(item: BuildableRequest<'TResponse>, accKey: Type) : Task<'TResponse> =
-        let resolved = FieldValueResolver.resolveObject (item :> BuildableRequest) context
-        let json     = JsonSerializer.Serialize(resolved :> obj)
-        let response = JsonSerializer.Deserialize<'TResponse>(json, jsonOptions)
-        context.Accumulate(accKey, response :> obj)
-        context.CaptureRaw(item.GetType().Name, response :> obj)
-        Task.FromResult(response)
+        task {
+            let! resolved = FieldValueResolver.resolveObjectAsync (item :> BuildableRequest) context
+            let json      = JsonSerializer.Serialize(resolved :> obj)
+            let response  = JsonSerializer.Deserialize<'TResponse>(json, jsonOptions)
+            context.Accumulate(accKey, response :> obj)
+            context.CaptureRaw(item.GetType().Name, response :> obj)
+            return response
+        }
