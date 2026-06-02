@@ -117,6 +117,16 @@ workflow {
     // poll — retry until predicate
     let! order = pollWith 100 5000 GetOrderRequest.Default (fun r -> r.Status = "pending")
 
+    // for loop — runs body for each element
+    for i in 1..3 do
+        build { AddOrderItem.Default with ProductName = FieldValues.constant $"Item {i}" }
+
+    // while loop — runs body while guard is true
+    let mutable n = 0
+    while n < 3 do
+        CreateUserRequest.Default
+        n <- n + 1
+
     // async assertion returning Task<'T>
     let! items = fetchOrderItemsAsync order.Id
     Assert.Equal(2, items.Length)

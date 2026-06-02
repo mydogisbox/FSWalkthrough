@@ -227,6 +227,31 @@ let ``MapBody ExplicitFieldMapping WorksCorrectly`` () =
     } |> run runner
 
 [<Fact>]
+let ``ForLoop BuildsMultipleItems`` () =
+    workflow {
+        LoginRequest.Default
+        CreateUserRequest.Default
+        for i in 1..3 do
+            build { AddOrderItem.Default with ProductName = FieldValues.constant $"Item {i}" }
+        let! order = CreateOrderRequest.Default
+        Assert.Equal(3, order.Items.Length)
+        Assert.Equal("Item 1", order.Items[0].ProductName)
+        Assert.Equal("Item 3", order.Items[2].ProductName)
+    } |> run (makeRunner())
+
+[<Fact>]
+let ``WhileLoop CreatesUsersUntilCondition`` () =
+    let mutable count = 0
+    workflow {
+        LoginRequest.Default
+        while count < 3 do
+            { CreateUserRequest.Default with Role = FieldValues.constant "while-role" }
+            count <- count + 1
+        let! users = { GetUsersByRoleRequest.Default with Role = FieldValues.constant "while-role" }
+        Assert.Equal(3, users.Length)
+    } |> run (makeRunner())
+
+[<Fact>]
 let ``TagUser Returns201WithNoBody`` () =
     workflow {
         LoginRequest.Default

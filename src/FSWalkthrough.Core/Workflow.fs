@@ -62,6 +62,18 @@ type WorkflowBuilder() =
             return! wf2 runner
         }
 
+    member _.For(xs: #seq<'T>, body: 'T -> Workflow<unit>) : Workflow<unit> =
+        fun runner -> task {
+            for x in xs do
+                do! (body x) runner
+        }
+
+    member _.While(guard: unit -> bool, body: Workflow<unit>) : Workflow<unit> =
+        fun runner -> task {
+            while guard() do
+                do! body runner
+        }
+
     member _.TryWith(wf: Workflow<'T>, handler: exn -> Workflow<'T>) : Workflow<'T> =
         fun runner -> task {
             try return! wf runner

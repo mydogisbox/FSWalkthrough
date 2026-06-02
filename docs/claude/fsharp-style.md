@@ -1,6 +1,6 @@
 # F# style
 
-_Current version: 1.0.4._
+_Current version: 1.0.6._
 
 ---
 
@@ -157,6 +157,16 @@ workflow {
 
     // poll — retry until predicate
     let! order = pollWith 100 5000 GetOrderRequest.Default (fun r -> r.Status = "pending")
+
+    // for loop — runs body for each element in a sequence
+    for i in 1..3 do
+        build { AddOrderItem.Default with ProductName = FieldValues.constant $"Item {i}" }
+
+    // while loop — runs body while guard is true (guard is synchronous)
+    let mutable n = 0
+    while n < 3 do
+        CreateUserRequest.Default
+        n <- n + 1
 } |> run runner
 ```
 
