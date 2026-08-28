@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <Authors>Michael Ciccotti</Authors>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <Copyright>Copyright (c) 2026 Michael Ciccotti</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/mydogisbox/FSWalkthrough</PackageProjectUrl>

@@ -1,6 +1,6 @@
 # F# style
 
-_Current version: 1.0.6._
+_Current version: 1.0.7._
 
 ---
 
