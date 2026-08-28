@@ -17,3 +17,6 @@ test-api.log
 
 # OS
 .DS_Store
+
+# Claude Code worktrees
+.claude/worktrees/

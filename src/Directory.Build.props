@@ -4,6 +4,9 @@
     <Version>1.0.6</Version>
     <Copyright>Copyright (c) 2026 Michael Ciccotti</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/mydogisbox/FSWalkthrough</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mydogisbox/FSWalkthrough</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
