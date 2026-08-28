@@ -22,16 +22,16 @@ Every field a test names is a claim that the field matters to that test. Default
 
 | Package | Contents |
 | --- | --- |
-| `MCiccotti.FSWalkthrough.Core` | Request and response types, the `workflow` CE, `WorkflowRunner`, field values |
-| `MCiccotti.FSWalkthrough.Http` | `HttpTarget` and `HttpStep` — sends workflow requests over HTTP |
+| `mciccotti.FSWalkthrough.Core` | Request and response types, the `workflow` CE, `WorkflowRunner`, field values |
+| `mciccotti.FSWalkthrough.Http` | `HttpTarget` and `HttpStep` — sends workflow requests over HTTP |
 
 ```bash
-dotnet add package MCiccotti.FSWalkthrough.Http
+dotnet add package mciccotti.FSWalkthrough.Http
 ```
 
-`MCiccotti.FSWalkthrough.Http` depends on `MCiccotti.FSWalkthrough.Core`, so for HTTP workflows that one package is enough. Both target `net10.0`.
+`mciccotti.FSWalkthrough.Http` depends on `mciccotti.FSWalkthrough.Core`, so for HTTP workflows that one package is enough. Both target `net10.0`.
 
-Package IDs carry the `MCiccotti.` prefix; the namespaces do not. Install `MCiccotti.FSWalkthrough.Http`, then `open FSWalkthrough.Http`.
+Package IDs carry the `mciccotti.` prefix; the namespaces do not. Install `mciccotti.FSWalkthrough.Http`, then `open FSWalkthrough.Http`.
 
 ## Requests and steps
 
@@ -115,7 +115,7 @@ workflow {
 
 ## Guidance for coding agents
 
-`MCiccotti.FSWalkthrough.Core` ships its own usage and style guides inside the package. On build they are written into your project:
+`mciccotti.FSWalkthrough.Core` ships its own usage and style guides inside the package. On build they are written into your project:
 
 ```
 .claude/fswalkthrough/
