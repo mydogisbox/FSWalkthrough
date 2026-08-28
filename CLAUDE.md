@@ -14,6 +14,18 @@ Run tests after every change to verify nothing is broken.
 
 Use `./publish-local.sh [patch|minor|major|x.y.z]` to bump the version, pack both projects, and write `.nupkg` files to `./nupkgs`. Version is the single source of truth in `src/Directory.Build.props`.
 
+Then use `./publish-nuget.sh [x.y.z]` to push that version's packages from `./nupkgs` to nuget.org. With no argument it reads the current version from `src/Directory.Build.props` and pushes only the packages matching it — never the whole directory, which accumulates every version ever packed.
+
+The two steps are deliberately separate. `publish-local.sh` bumps on every run, so folding the push into it would burn a version number whenever a push failed, and versions on nuget.org are permanent. Keeping them apart makes publishing re-runnable.
+
+The API key is read from the macOS Keychain, so it never appears in a command line, a dotfile, or shell history. Store it once:
+
+```bash
+security add-generic-password -a "$USER" -s nuget-api-key -U -w
+```
+
+Override the defaults with `NUGET_KEYCHAIN_SERVICE` (default `nuget-api-key`) or `NUGET_SOURCE` (default nuget.org). Pointing `NUGET_SOURCE` at a local folder is a safe way to rehearse a push without touching nuget.org.
+
 ---
 
 ## Architecture
