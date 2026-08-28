@@ -10,6 +10,11 @@
     <Compile Include="Workflow.fs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="build\FSWalkthrough.Core.targets" Visible="false">
+      <Pack>true</Pack>
+      <PackagePath>buildTransitive/FSWalkthrough.Core.targets</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\..\docs\claude\claude.md">
       <Pack>true</Pack>
       <PackagePath>buildTransitive/claude/claude.md</PackagePath>

@@ -1,0 +1,28 @@
+<Project>
+  <Target Name="CopyFSWalkthroughClaudeDocs" BeforeTargets="BeforeBuild;BeforeRebuild;PrepareForBuild">
+    <PropertyGroup>
+      <_FSWalkthroughDocsSrc>$(MSBuildThisFileDirectory)claude/</_FSWalkthroughDocsSrc>
+      <_FSWalkthroughDocsDest>$(MSBuildProjectDirectory)/.claude/fswalkthrough/</_FSWalkthroughDocsDest>
+      <_FSWalkthroughVersionFile>$(_FSWalkthroughDocsDest).version</_FSWalkthroughVersionFile>
+    </PropertyGroup>
+
+    <ReadLinesFromFile File="$(_FSWalkthroughVersionFile)" Condition="Exists('$(_FSWalkthroughVersionFile)')">
+      <Output TaskParameter="Lines" ItemName="_FSWalkthroughInstalledVersionLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <_FSWalkthroughInstalledVersion>@(_FSWalkthroughInstalledVersionLines)</_FSWalkthroughInstalledVersion>
+      <_FSWalkthroughUpToDate Condition="'$(_FSWalkthroughInstalledVersion)' == '$(MSBuildThisFileDirectory)'">true</_FSWalkthroughUpToDate>
+      <_FSWalkthroughUpToDate Condition="'$(_FSWalkthroughUpToDate)' == ''">false</_FSWalkthroughUpToDate>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_FSWalkthroughDocsDest)" Condition="!$(_FSWalkthroughUpToDate)" />
+    <ItemGroup>
+      <_FSWalkthroughDocFiles Include="$(_FSWalkthroughDocsSrc)**/*" Condition="!$(_FSWalkthroughUpToDate)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_FSWalkthroughDocFiles)"
+          DestinationFolder="$(_FSWalkthroughDocsDest)%(RecursiveDir)"
+          Condition="!$(_FSWalkthroughUpToDate)" />
+    <WriteLinesToFile File="$(_FSWalkthroughVersionFile)" Lines="$(MSBuildThisFileDirectory)" Overwrite="true" Condition="!$(_FSWalkthroughUpToDate)" />
+    <Message Text="FSWalkthrough: Claude docs written to .claude/fswalkthrough/ — add '@import .claude/fswalkthrough/claude.md' to your CLAUDE.md to enable them." Importance="high" Condition="!$(_FSWalkthroughUpToDate)" />
+  </Target>
+</Project>
